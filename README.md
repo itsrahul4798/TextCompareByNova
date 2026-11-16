@@ -1,4 +1,4 @@
-# Text Compare By 😇 Nova
+# Text Compare By Nova
 
 A free, private tool to compare text and code. It works in your browser with no install, no login and no trial.
 
