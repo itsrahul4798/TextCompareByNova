@@ -54,3 +54,5 @@ Download `index.html` and double-click it. It works with no internet connection.
 1. Open the app.
 2. Paste text in both boxes, or choose an example from **Load example**.
 3. Read the summary and the list of changes.
+
+
