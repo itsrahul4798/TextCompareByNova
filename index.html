@@ -774,7 +774,8 @@ function getOpts() {
 }
 function saveAll() {
   const o = getOpts(); store.set('opts', o);
-  store.set('left', $('left').value.length < 2e6 ? $('left').value : ''); store.set('right', $('right').value.length < 2e6 ? $('right').value : '');
+  // Text is NOT saved, so the app always opens empty (privacy)
+  store.set('left', ''); store.set('right', '');
 }
 function loadAll() {
   const o = store.get('opts', null);
@@ -783,9 +784,11 @@ function loadAll() {
     const map = { optAuto: 'auto', optFormat: 'format', optCase: 'ignoreCase', optWs: 'ignoreWs', optBlank: 'ignoreBlank', optComments: 'ignoreComments', optOnly: 'onlyDiff' };
     for (const id of OPT_IDS) if (typeof o[map[id]] === 'boolean') $(id).checked = o[map[id]];
   }
-  $('left').value = store.get('left', ''); $('right').value = store.get('right', '');
+  $('left').value = ''; $('right').value = '';
+  try { localStorage.removeItem('cc_left'); localStorage.removeItem('cc_right'); } catch (e) { /* storage not available */ }
   document.documentElement.dataset.theme = store.get('theme', (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
 }
+  
 function lineCount(s) { return s ? s.split('\n').length : 0; }
 function updateCounts() { $('cntL').textContent = lineCount($('left').value) + ' lines'; $('cntR').textContent = lineCount($('right').value) + ' lines'; }
 
