@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Text Compare By Nova</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect x='2' y='6' width='26' height='52' rx='5' fill='%23fde8e8' stroke='%23dc2626' stroke-width='3'/><rect x='36' y='6' width='26' height='52' rx='5' fill='%23e2f6e7' stroke='%2316a34a' stroke-width='3'/><path d='M8 18h14M8 28h10M8 38h14M8 48h8' stroke='%23dc2626' stroke-width='4' stroke-linecap='round'/><path d='M42 18h14M42 28h14M42 38h10M42 48h14' stroke='%2316a34a' stroke-width='4' stroke-linecap='round'/><circle cx='32' cy='32' r='11' fill='%232563eb'/><path d='M26 29h11l-3-3M38 35H27l3 3' stroke='%23fff' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --text:#1d2330; --muted:#6b7280; --border:#dfe3ea; --accent:#2563eb; --accent-2:#1d4ed8;
+  --del-bg:#fde8e8; --del-strong:#f5a9a9; --add-bg:#e2f6e7; --add-strong:#93dba6; --eq:#ffffff; --empty:#f0f1f4;
+  --ln:#9aa1ad; --ok:#15803d; --ok-bg:#e7f6ec; --warn:#b45309; --warn-bg:#fff4e0; --flash:#fff3b0;
+  --mono: Consolas, "Cascadia Code", "Cascadia Mono", Menlo, "DejaVu Sans Mono", monospace;
+}
+[data-theme="dark"]{
+  --bg:#14161b; --panel:#1c1f26; --text:#e6e8ee; --muted:#9aa1ad; --border:#2e333d; --accent:#4f8cff; --accent-2:#6b9dff;
+  --del-bg:#3a1f22; --del-strong:#7a2e35; --add-bg:#18331f; --add-strong:#2d6a3c; --eq:#1c1f26; --empty:#191c22;
+  --ln:#5d6470; --ok:#4ade80; --ok-bg:#163222; --warn:#fbbf24; --warn-bg:#3a2e14; --flash:#4a4320;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
+header{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+h1{font-size:17px;margin:0 8px 0 0;white-space:nowrap}
+h1 span{color:var(--accent)}
+select,button,label.chk{font:inherit}
+select{max-width:200px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--panel);color:var(--text)}
+button{padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--panel);color:var(--text);cursor:pointer;white-space:nowrap}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.primary:hover{background:var(--accent-2)}
+.spacer{flex:1}
+.badge{font-size:12px;padding:3px 8px;border-radius:999px;background:var(--empty);color:var(--muted);border:1px solid var(--border);white-space:nowrap}
+.opts{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;padding:8px 16px;background:var(--panel);border-bottom:1px solid var(--border)}
+label.chk{display:inline-flex;gap:6px;align-items:center;cursor:pointer;user-select:none;color:var(--text);font-size:13px}
+main{padding:12px 16px 40px}
+.inputs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.inputs.hidden{display:none}
+.pane{background:var(--panel);border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;min-width:0}
+.pane-head{display:flex;gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--border)}
+.pane-head b{font-size:13px}
+.pane-head .count{color:var(--muted);font-size:12px;margin-left:4px}
+.pane-head button{padding:3px 8px;font-size:12px}
+textarea{width:100%;min-height:220px;height:240px;resize:vertical;border:0;outline:0;padding:10px;background:transparent;color:var(--text);font:13px/1.45 var(--mono);tab-size:4;white-space:pre;overflow:auto;border-radius:0 0 8px 8px}
+textarea.drag{background:var(--add-bg)}
+.banner{margin:12px 0 8px;padding:12px 14px;border-radius:8px;border:1px solid var(--border);background:var(--panel);display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center}
+.banner.same{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+.banner .big{font-size:16px;font-weight:700}
+.stat{display:inline-flex;gap:6px;align-items:center;font-size:13px}
+.dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+.dot.c{background:linear-gradient(90deg,var(--del-strong) 50%,var(--add-strong) 50%)}
+.dot.a{background:var(--add-strong)} .dot.d{background:var(--del-strong)}
+.warn{margin:6px 0;padding:8px 12px;border-radius:6px;background:var(--warn-bg);color:var(--warn);font-size:13px}
+.navbar{display:flex;gap:8px;align-items:center;margin-left:auto}
+details.changes{background:var(--panel);border:1px solid var(--border);border-radius:8px;margin-bottom:10px}
+details.changes summary{cursor:pointer;padding:8px 12px;font-weight:600}
+details.changes ol{margin:0;padding:4px 16px 10px 40px;max-height:260px;overflow:auto}
+details.changes li{padding:3px 0;cursor:pointer}
+details.changes li:hover{color:var(--accent)}
+.chg-was{background:var(--del-bg);padding:0 4px;border-radius:3px;font-family:var(--mono);font-size:12.5px}
+.chg-now{background:var(--add-bg);padding:0 4px;border-radius:3px;font-family:var(--mono);font-size:12.5px}
+.diffwrap{background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:auto;max-height:calc(100vh - 140px)}
+table.diff{border-collapse:collapse;width:100%;table-layout:fixed;font:13px/1.5 var(--mono)}
+table.diff col.ln{width:52px} table.diff col.sg{width:22px}
+table.diff th{position:sticky;top:0;background:var(--panel);border-bottom:1px solid var(--border);text-align:left;padding:6px 8px;font:600 12px "Segoe UI",system-ui,sans-serif;color:var(--muted);z-index:2}
+table.diff td{padding:0 8px;vertical-align:top;white-space:pre-wrap;word-break:break-all;overflow-wrap:anywhere}
+table.diff td.ln{color:var(--ln);text-align:right;user-select:none;padding-right:8px;border-right:1px solid var(--border);font-size:12px}
+table.diff td.sg{color:var(--muted);text-align:center;user-select:none;padding:0}
+table.diff td.c{min-height:1.5em}
+table.diff td.mid{border-left:2px solid var(--border)}
+td.del{background:var(--del-bg)} td.add{background:var(--add-bg)} td.empty{background:var(--empty)}
+tr.gap td{background:var(--empty);color:var(--muted);text-align:center;font:12px "Segoe UI",system-ui,sans-serif;padding:3px;cursor:pointer}
+tr.gap td:hover{color:var(--accent)}
+.xd{background:var(--del-strong);border-radius:2px}
+.xa{background:var(--add-strong);border-radius:2px}
+tr.flash td{animation:flash 1.4s ease-out}
+@keyframes flash{0%{box-shadow:inset 0 0 0 999px var(--flash)}100%{box-shadow:inset 0 0 0 999px transparent}}
+.empty-msg{padding:40px;text-align:center;color:var(--muted)}
+.help{color:var(--muted);font-size:12px}
+kbd{font:11px var(--mono);border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:var(--empty)}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:8px 14px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50}
+.toast.show{opacity:.95}
+@media (max-width:900px){.inputs{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Text Compare By <span>Nova</span></h1>
+  <label class="help" for="lang">Type</label>
+  <select id="lang" title="What kind of text is this?">
+    <option value="auto">Auto detect</option>
+    <option value="text">Plain text</option>
+    <option value="dax">DAX</option>
+    <option value="m">Power Query (M)</option>
+    <option value="sql">SQL</option>
+    <option value="python">Python</option>
+    <option value="html">HTML / XML</option>
+    <option value="json">JSON</option>
+    <option value="other">Other code (no formatting)</option>
+  </select>
+  <span id="detected" class="badge">—</span>
+  <button class="primary" id="btnCompare" title="Ctrl + Enter">Compare</button>
+  <button id="btnSwap" title="Swap left and right">⇄ Swap</button>
+  <button id="btnClear">Clear</button>
+  <span class="spacer"></span>
+  <select id="example" title="Load an example">
+    <option value="">Load example…</option>
+    <option value="dax">DAX example</option>
+    <option value="m">M query example</option>
+    <option value="sql">SQL example</option>
+    <option value="text">Text example</option>
+  </select>
+  <button id="btnInputs" title="Show or hide the input boxes">Hide inputs</button>
+  <button id="btnTheme" title="Light / dark">🌓</button>
+</header>
+<div class="opts">
+  <label class="chk"><input type="checkbox" id="optAuto" checked> Compare automatically</label>
+  <label class="chk" title="Formats only the comparison result below. Your input boxes are NOT changed."><input type="checkbox" id="optFormat" checked> Format for compare</label>
+  <label class="chk" title="Formats the text inside your input boxes (comments are always kept). Happens when you tick this, paste, open a file or click Compare - not while typing."><input type="checkbox" id="optFormatInput"> Format my input</label>
+  <label class="chk"><input type="checkbox" id="optCase"> Ignore case</label>
+  <label class="chk"><input type="checkbox" id="optWs"> Ignore spaces</label>
+  <label class="chk"><input type="checkbox" id="optBlank" checked> Ignore blank lines</label>
+  <label class="chk" title="Ticked: comment lines (-- , // , # , /* */) are skipped and not compared. Not ticked: comments are compared like normal text."><input type="checkbox" id="optComments"> Ignore comments</label>
+  <label class="chk"><input type="checkbox" id="optOnly"> Show only differences</label>
+  <label class="chk">View
+    <select id="view"><option value="side">Side by side</option><option value="inline">One column</option></select>
+  </label>
+  <span class="help">Tip: <kbd>Ctrl</kbd>+<kbd>Enter</kbd> compare · drop a file on a box to load it · <kbd>Alt</kbd>+<kbd>↓</kbd>/<kbd>↑</kbd> next/prev difference</span>
+</div>
+<main>
+  <section class="inputs" id="inputs">
+    <div class="pane">
+      <div class="pane-head">
+        <b>Left (old / original)</b><span class="count" id="cntL"></span>
+        <span class="spacer"></span>
+        <button data-open="left">Open file</button>
+        <button data-copy="left" title="Copy the formatted version">Copy formatted</button>
+      </div>
+      <textarea id="left" spellcheck="false" placeholder="Paste the first text or code here…"></textarea>
+    </div>
+    <div class="pane">
+      <div class="pane-head">
+        <b>Right (new / changed)</b><span class="count" id="cntR"></span>
+        <span class="spacer"></span>
+        <button data-open="right">Open file</button>
+        <button data-copy="right" title="Copy the formatted version">Copy formatted</button>
+      </div>
+      <textarea id="right" spellcheck="false" placeholder="Paste the second text or code here…"></textarea>
+    </div>
+  </section>
+  <input type="file" id="fileInput" hidden>
+  <div id="warns"></div>
+  <div id="banner" class="banner"><span class="help">Paste text or code in both boxes. The result shows here.</span></div>
+  <details class="changes" id="changes" hidden open><summary id="changesTitle">List of changes</summary><ol id="changeList"></ol></details>
+  <div class="diffwrap" id="diffwrap"><div class="empty-msg">Nothing to compare yet.</div></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ================= Code Compare engine: formatters + diff ================= */
+const INDENT = '    ';
+const WIDTH = 80;
+
+const DAX_KW = new Set(['VAR','RETURN','IN','NOT','AND','OR','TRUE','FALSE','ASC','DESC','DEFINE','EVALUATE','MEASURE','ORDER','BY','START','AT','COLUMN','TABLE']);
+const DAX_STRUCT = new Set(['VAR','RETURN','IN','ORDER','BY','START','AT','ASC','DESC','DEFINE','EVALUATE','MEASURE','AND','OR']);
+const M_KW = new Set(['let','in','each','if','then','else','try','otherwise','catch','and','or','not','type','meta','as','is','true','false','null','section','shared','error','table','record','list','nullable','function']);
+const SQL_KW = new Set(('SELECT FROM WHERE AND OR NOT IN IS NULL AS ON JOIN INNER LEFT RIGHT FULL OUTER CROSS GROUP BY ORDER HAVING ' +
+  'UNION ALL DISTINCT TOP LIMIT OFFSET FETCH NEXT ROWS ROW ONLY INSERT INTO VALUES UPDATE SET DELETE CREATE ALTER DROP TABLE VIEW ' +
+  'INDEX PROCEDURE PROC FUNCTION RETURNS RETURN BEGIN END CASE WHEN THEN ELSE EXISTS BETWEEN LIKE ILIKE WITH OVER PARTITION ASC DESC ' +
+  'NULLS FIRST LAST PRIMARY KEY FOREIGN REFERENCES DEFAULT CONSTRAINT UNIQUE CHECK IF DECLARE EXEC EXECUTE MERGE USING MATCHED ' +
+  'TRUNCATE QUALIFY WINDOW INTERSECT EXCEPT MINUS APPLY RECURSIVE LATERAL TRUE FALSE ANY SOME TEMP TEMPORARY REPLACE GO ' +
+  'RANGE UNBOUNDED PRECEDING FOLLOWING CURRENT PIVOT UNPIVOT FOR NOLOCK').split(' '));
+const SQL_FUNCS = new Set(('COUNT SUM AVG MIN MAX COALESCE ISNULL IFNULL NVL NVL2 NULLIF CAST CONVERT TRY_CAST TRY_CONVERT ROUND FLOOR ' +
+  'CEILING CEIL ABS UPPER LOWER TRIM LTRIM RTRIM SUBSTRING SUBSTR LEFT RIGHT LEN LENGTH REPLACE CONCAT CONCAT_WS CHARINDEX ' +
+  'POSITION INSTR DATEADD DATEDIFF DATEPART DATENAME DATE_TRUNC DATE_PART EXTRACT GETDATE SYSDATE CURRENT_DATE CURRENT_TIMESTAMP NOW ' +
+  'YEAR MONTH DAY FORMAT TO_DATE TO_CHAR TO_NUMBER TO_VARCHAR TO_TIMESTAMP ROW_NUMBER RANK DENSE_RANK NTILE LAG LEAD FIRST_VALUE ' +
+  'LAST_VALUE STRING_AGG LISTAGG GROUP_CONCAT IIF IF IFF DECODE SPLIT_PART REGEXP_REPLACE REGEXP_SUBSTR GREATEST LEAST POWER SQRT ' +
+  'MOD ARRAY_AGG OBJECT_CONSTRUCT PARSE_JSON FLATTEN ZEROIFNULL DIV0 DATEFROMPARTS EOMONTH ISNUMERIC STUFF PATINDEX REVERSE ' +
+  'REPLICATE SPACE STR CHAR ASCII SIGN EXP LOG PERCENTILE_CONT MEDIAN STDDEV VARIANCE DATE TIME TIMESTAMP').split(' '));
+
+/* ---------------- Tokenizer (DAX / M / SQL) ---------------- */
+function tokenize(src, lang) {
+  const toks = [], n = src.length;
+  let i = 0;
+  const push = (t, v) => toks.push({ t, v });
+  const readQ = (start, q) => { let j = start + 1; while (j < n) { if (src[j] === q) { if (src[j + 1] === q) { j += 2; continue; } return j + 1; } j++; } return n; };
+  const readBr = (start) => { let j = start + 1; while (j < n) { if (src[j] === ']') { if (src[j + 1] === ']') { j += 2; continue; } return j + 1; } j++; } return n; };
+  const reNum = /(?:\d+\.?\d*(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?)/y;
+  const reWord = lang === 'sql' ? /[\p{L}_@#$][\p{L}\p{N}_@#$]*/uy
+    : lang === 'm' ? /[\p{L}_#][\p{L}\p{N}_.]*/uy : /[\p{L}_][\p{L}\p{N}_.]*/uy;
+  const OPS3 = ['...'];
+  const OPS2 = ['<=', '>=', '<>', '!=', '==', '&&', '||', '=>', ':=', '::', '??', '..', '->', '+=', '-=', '*=', '/='];
+  while (i < n) {
+    const c = src[i], c2 = src.substr(i, 2);
+    if (/\s/.test(c)) { i++; continue; }
+    if (c2 === '/*') { let j = src.indexOf('*/', i + 2); j = j < 0 ? n : j + 2; push('bcomment', src.slice(i, j)); i = j; continue; }
+    if ((c2 === '//' && lang !== 'sql') || (c2 === '--' && lang !== 'm')) {
+      let j = src.indexOf('\n', i); if (j < 0) j = n; push('lcomment', src.slice(i, j).trimEnd()); i = j; continue;
+    }
+    if (lang === 'm' && c2 === '#"') { const j = readQ(i + 1, '"'); push('ident', src.slice(i, j)); i = j; continue; }
+    if (c === '"') { const j = readQ(i, '"'); push(lang === 'sql' ? 'ident' : 'str', src.slice(i, j)); i = j; continue; }
+    if (c === "'") { const j = readQ(i, "'"); push(lang === 'dax' ? 'ident' : 'str', src.slice(i, j)); i = j; continue; }
+    if (c === '[' && lang === 'dax') { const j = readBr(i); push('col', src.slice(i, j)); i = j; continue; }
+    if (c === '[' && lang === 'sql') { const j = readBr(i); push('ident', src.slice(i, j)); i = j; continue; }
+    if (c === '`' && lang === 'sql') { const j = readQ(i, '`'); push('ident', src.slice(i, j)); i = j; continue; }
+    if (/\d/.test(c) || (c === '.' && /\d/.test(src[i + 1] || ''))) {
+      reNum.lastIndex = i; const m = reNum.exec(src);
+      if (m && m[0]) { push('num', m[0]); i += m[0].length; continue; }
+    }
+    reWord.lastIndex = i; const w = reWord.exec(src);
+    if (w && w[0]) {
+      const v = w[0], U = v.toUpperCase();
+      let t = 'word';
+      if (lang === 'dax' && DAX_KW.has(U)) t = 'kw';
+      else if (lang === 'sql' && SQL_KW.has(U)) t = 'kw';
+      else if (lang === 'm' && M_KW.has(v)) t = 'kw';
+      push(t, v); i += v.length; continue;
+    }
+    if (c === '(' || c === '{' || (c === '[' && lang === 'm')) { push('open', c); i++; continue; }
+    if (c === ')' || c === '}' || c === ']') { push('close', c); i++; continue; }
+    if (c === ',') { push('comma', c); i++; continue; }
+    if (c === ';') { push('semi', c); i++; continue; }
+    if (c === '.' ) { push('dot', c); i++; continue; }
+    const s3 = src.substr(i, 3);
+    if (OPS3.includes(s3)) { push('op', s3); i += 3; continue; }
+    if (OPS2.includes(c2)) { push('op', c2); i += 2; continue; }
+    push('op', c); i++;
+  }
+  return toks;
+}
+
+/* Merge multi-word SQL keywords like GROUP BY, LEFT OUTER JOIN */
+const SQL_PHRASES = ['LEFT OUTER JOIN', 'RIGHT OUTER JOIN', 'FULL OUTER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'FULL JOIN', 'INNER JOIN',
+  'CROSS JOIN', 'CROSS APPLY', 'OUTER APPLY', 'GROUP BY', 'ORDER BY', 'PARTITION BY', 'UNION ALL', 'INSERT INTO', 'DELETE FROM',
+  'MERGE INTO', 'WHEN NOT MATCHED', 'WHEN MATCHED'].map(p => p.split(' ')).sort((a, b) => b.length - a.length);
+function mergeSqlPhrases(toks) {
+  const out = [];
+  for (let i = 0; i < toks.length; i++) {
+    let merged = false;
+    for (const ph of SQL_PHRASES) {
+      let ok = true;
+      for (let k = 0; k < ph.length; k++) {
+        const t = toks[i + k];
+        if (!t || (t.t !== 'kw' && t.t !== 'word') || t.v.toUpperCase() !== ph[k]) { ok = false; break; }
+      }
+      if (ok) { out.push({ t: 'kw', v: ph.join(' ') }); i += ph.length - 1; merged = true; break; }
+    }
+    if (!merged) out.push(toks[i]);
+  }
+  return out;
+}
+
+/* ---------------- Parser: builds nested groups ---------------- */
+function parse(toks, opts) {
+  let p = 0;
+  const CLOSE = { '(': ')', '{': '}', '[': ']' };
+  const lang = opts.lang;
+  const isStop = (t, stops) =>
+    (t.t === 'comma' && stops.has(',')) || (t.t === 'close' && stops.has(t.v)) ||
+    (opts.mLet && t.t === 'kw' && t.v === 'in' && stops.has('in'));
+
+  function finish(out) {
+    for (let k = 0; k < out.length; k++) {
+      const it = out[k], nx = out[k + 1], pv = out[k - 1];
+      if ((it.t === 'word' || it.t === 'kw') && nx && nx.t === 'group' && nx.open === '(') {
+        if (it.t === 'word') it.t = 'func';
+        else {
+          const U = it.v.toUpperCase();
+          if (lang === 'dax' && !DAX_STRUCT.has(U)) it.t = 'func';
+          else if (lang === 'sql' && SQL_FUNCS.has(U)) it.t = 'func';
+        }
+      }
+      if (it.t === 'op' && /^[-+!~]$/.test(it.v))
+        it.unary = !pv || pv.t === 'op' || pv.t === 'comma' || pv.t === 'kw' || pv.t === 'lcomment' || pv.t === 'semi';
+    }
+    return out;
+  }
+  function parseSeq(stops) {
+    const out = [];
+    while (p < toks.length) {
+      const t = toks[p];
+      if (isStop(t, stops)) break;
+      if (t.t === 'open') { p++; out.push(parseGroup(t.v, CLOSE[t.v])); continue; }
+      if (opts.mLet && t.t === 'kw' && t.v === 'let') { p++; out.push(parseLet(stops)); continue; }
+      out.push(t); p++;
+    }
+    return finish(out);
+  }
+  function parseGroup(open, close) {
+    const items = [];
+    const stops = new Set([close]);
+    if (opts.splitCommas) stops.add(',');
+    for (;;) {
+      items.push(parseSeq(stops));
+      const t = toks[p];
+      if (!t) return { t: 'group', open, close: '', items };
+      p++;
+      if (t.t === 'comma') continue;
+      return { t: 'group', open, close, items };
+    }
+  }
+  function parseLet(parentStops) {
+    const items = [];
+    const stops = new Set(['in', ',']);
+    for (;;) {
+      items.push(parseSeq(stops));
+      const t = toks[p];
+      if (!t) return { t: 'let', items, body: [], hasIn: false };
+      p++;
+      if (t.t === 'comma') continue;
+      return { t: 'let', items, body: parseSeq(parentStops), hasIn: true };
+    }
+  }
+  const all = [];
+  while (p < toks.length) {
+    all.push(...parseSeq(new Set()));
+    if (p < toks.length) { all.push(toks[p]); p++; } // stray closer / 'in'
+  }
+  return finish(all);
+}
+
+/* ---------------- Layout helpers ---------------- */
+function tokText(it, lang) {
+  if (it.t === 'kw') return lang === 'm' ? it.v : it.v.toUpperCase();
+  if (it.t === 'func') {
+    if (lang === 'dax') return it.v.toUpperCase();
+    if (lang === 'sql' && SQL_FUNCS.has(it.v.toUpperCase())) return it.v.toUpperCase();
+  }
+  return it.v;
+}
+function needSpace(p, it) {
+  if (!p) return false;
+  if (it.t === 'comma' || it.t === 'semi' || it.t === 'dot' || it.t === 'close') return false;
+  if (p.t === 'dot') return false;
+  if (p.t === 'op' && (p.unary || p.v === '::')) return false;
+  if (it.t === 'op' && it.v === '::') return false;
+  if (it.t === 'group') return !(p.t === 'func' || p.t === 'word' || p.t === 'ident' || p.t === 'col' || p.t === 'group');
+  if (it.t === 'col') return !(p.t === 'word' || p.t === 'ident' || p.t === 'func');
+  return true;
+}
+const trimItems = items => (items.length > 1 && items[items.length - 1].length === 0) ? items.slice(0, -1) : items;
+const DAX_BREAK = new Set(['VAR', 'RETURN', 'EVALUATE', 'DEFINE', 'MEASURE']);
+
+function flatSeq(seq, lang) {
+  let s = '', prev = null;
+  for (const it of seq) {
+    if (it.t === 'lcomment' || it.t === 'let') return null;
+    if (lang === 'dax' && it.t === 'kw' && DAX_BREAK.has(it.v.toUpperCase())) return null;
+    let txt;
+    if (it.t === 'group') { txt = flatGroup(it, lang); if (txt === null) return null; }
+    else txt = tokText(it, lang);
+    if (needSpace(prev, it)) s += ' ';
+    s += txt; prev = it;
+  }
+  return s;
+}
+function flatGroup(g, lang) {
+  const parts = [];
+  for (const sq of trimItems(g.items)) { const f = flatSeq(sq, lang); if (f === null) return null; parts.push(f); }
+  return g.open + parts.join(', ') + g.close;
+}
+function renderGroup(g, ind, lang, col) {
+  const f = flatGroup(g, lang);
+  if (f !== null && col + f.length <= WIDTH) return f;
+  const items = trimItems(g.items);
+  if (items.length === 1 && items[0].length === 0) return g.open + g.close;
+  const i2 = ind + INDENT;
+  return g.open + '\n' + items.map(s => i2 + renderSeq(s, i2, lang, i2.length)).join(',\n') + '\n' + ind + g.close;
+}
+function renderLet(node, ind, lang) {
+  const i2 = ind + INDENT;
+  let s = 'let\n' + trimItems(node.items).map(st => i2 + renderSeq(st, i2, lang, i2.length)).join(',\n');
+  if (node.hasIn) s += '\n' + ind + 'in\n' + i2 + renderSeq(node.body, i2, lang, i2.length);
+  return s;
+}
+function renderSeq(seq, ind, lang, col0) {
+  const f = flatSeq(seq, lang);
+  if (f !== null && col0 + f.length <= WIDTH) return f;
+  let out = '', prev = null, cur = ind;
+  const col = () => { const k = out.lastIndexOf('\n'); return k < 0 ? col0 + out.length : out.length - k - 1; };
+  const nl = (x) => { out = out.replace(/\s+$/, ''); if (out.length) out += '\n' + x; prev = null; };
+  for (let i = 0; i < seq.length; i++) {
+    const it = seq[i];
+    const U = it.t === 'kw' ? it.v.toUpperCase() : '';
+    if (lang === 'dax') {
+      if (U === 'VAR' || U === 'EVALUATE' || U === 'DEFINE' || U === 'ORDER') { nl(ind); cur = ind; }
+      else if (U === 'MEASURE') { nl(ind + INDENT); cur = ind + INDENT; }
+      else if (U === 'RETURN') { nl(ind); out += 'RETURN'; cur = ind + INDENT; out += '\n' + cur; prev = null; continue; }
+    } else if (lang === 'm' && (U === 'THEN' || U === 'ELSE')) { nl(ind + INDENT); cur = ind + INDENT; }
+    if (needSpace(prev, it)) out += ' ';
+    if (it.t === 'group') out += renderGroup(it, cur, lang, col());
+    else if (it.t === 'let') out += renderLet(it, cur, lang);
+    else out += tokText(it, lang);
+    if (it.t === 'lcomment') { out += '\n' + cur; prev = null; continue; }
+    prev = it;
+  }
+  return out.replace(/\s+$/, '');
+}
+
+function formatDaxM(src, lang, o) {
+  let toks = tokenize(src, lang);
+  if (o.ignoreComments) toks = toks.filter(t => t.t !== 'lcomment' && t.t !== 'bcomment');
+  const seq = parse(toks, { lang, splitCommas: true, mLet: lang === 'm' });
+  if (lang === 'dax') {
+    let k = -1;
+    for (let i = 0; i < seq.length; i++) {
+      const it = seq[i];
+      if (it.t === 'op' && (it.v === '=' || it.v === ':=')) { k = i; break; }
+      if (!['word', 'ident', 'col', 'str', 'num', 'op'].includes(it.t)) break;
+    }
+    if (k > 0 && k < seq.length - 1) {
+      const head = flatSeq(seq.slice(0, k), lang);
+      if (head !== null) return head + ' ' + seq[k].v + '\n' + INDENT + renderSeq(seq.slice(k + 1), INDENT, lang, INDENT.length);
+    }
+  }
+  return renderSeq(seq, '', lang, 0);
+}
+
+/* ---------------- SQL layout ---------------- */
+const SQL_MAIN = new Set(['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'HAVING', 'QUALIFY', 'WINDOW', 'LIMIT', 'OFFSET', 'FETCH',
+  'SET', 'VALUES', 'WITH', 'UNION', 'UNION ALL', 'INTERSECT', 'EXCEPT', 'MINUS', 'INSERT INTO', 'UPDATE', 'DELETE FROM', 'DELETE',
+  'RETURNING', 'MERGE INTO', 'USING', 'CREATE', 'ALTER', 'DROP', 'TRUNCATE', 'DECLARE', 'WHEN MATCHED', 'WHEN NOT MATCHED']);
+const SQL_SAMELINE = new Set(['LIMIT', 'OFFSET', 'FETCH', 'CREATE', 'ALTER', 'DROP', 'TRUNCATE', 'DECLARE', 'USING', 'MERGE INTO',
+  'WHEN MATCHED', 'WHEN NOT MATCHED', 'UNION', 'UNION ALL', 'INTERSECT', 'EXCEPT', 'MINUS']);
+const SQL_JOIN = new Set(['JOIN', 'INNER JOIN', 'LEFT JOIN', 'LEFT OUTER JOIN', 'RIGHT JOIN', 'RIGHT OUTER JOIN', 'FULL JOIN',
+  'FULL OUTER JOIN', 'CROSS JOIN', 'CROSS APPLY', 'OUTER APPLY']);
+const SQL_LIST = new Set(['SELECT', 'GROUP BY', 'ORDER BY', 'SET', 'FROM', 'WITH', 'VALUES', 'RETURNING']);
+
+function renderSqlGroup(g, lineInd) {
+  const inner = g.items[0] || [];
+  const isSub = inner.some(t => t.t === 'kw' && /^(SELECT|WITH)$/i.test(t.v));
+  if (isSub) { const i2 = lineInd + INDENT; return '(\n' + i2 + renderSql(inner, i2, false) + '\n' + lineInd + ')' + (g.close ? '' : ''); }
+  return '(' + renderSql(inner, lineInd, true) + (g.close || '');
+}
+function renderSql(seq, ind, inline) {
+  const stmts = [];
+  let out = '', prev = null, clause = '', lineInd = ind, between = false;
+  const ci = ind + INDENT, cs = [];
+  const nl = (x) => { out = out.replace(/\s+$/, ''); if (out.length) out += '\n' + x; lineInd = x; prev = null; };
+  for (let i = 0; i < seq.length; i++) {
+    const it = seq[i], nx = seq[i + 1];
+    const U = it.t === 'kw' ? it.v.toUpperCase() : '';
+    if (!inline && U && SQL_MAIN.has(U) && !(U === 'WITH' && nx && nx.t === 'group')) {
+      nl(ind); out += U; clause = U; prev = it;
+      if (U === 'SELECT') {
+        while (i + 1 < seq.length) {
+          const n1 = seq[i + 1], cu = seq[i].t === 'kw' ? seq[i].v.toUpperCase() : '';
+          const nu = n1.t === 'kw' ? n1.v.toUpperCase() : '';
+          if (nu === 'DISTINCT' || nu === 'ALL' || nu === 'TOP' || (cu === 'TOP' && (n1.t === 'num' || n1.t === 'group'))) {
+            i++; out += ' ' + (n1.t === 'group' ? renderSqlGroup(n1, lineInd) : tokText(n1, 'sql'));
+          } else break;
+        }
+      }
+      if (!SQL_SAMELINE.has(U)) nl(ci);
+      continue;
+    }
+    if (!inline && U && SQL_JOIN.has(U)) { nl(ci); out += U; clause = 'JOIN'; prev = it; continue; }
+    if (U === 'CASE') { if (needSpace(prev, it)) out += ' '; out += 'CASE'; cs.push(lineInd); prev = it; continue; }
+    if (cs.length && (U === 'WHEN' || U === 'ELSE')) { nl(cs[cs.length - 1] + INDENT); out += U; prev = it; continue; }
+    if (cs.length && U === 'END') { nl(cs.pop()); out += 'END'; prev = it; continue; }
+    if (U === 'BETWEEN') between = true;
+    if (!inline && !cs.length && (U === 'AND' || U === 'OR') && ['WHERE', 'HAVING', 'QUALIFY', 'JOIN'].includes(clause)) {
+      if (U === 'AND' && between) between = false;
+      else { nl(clause === 'JOIN' ? ci + INDENT : ci); out += U; prev = it; continue; }
+    }
+    if (it.t === 'comma') {
+      out += ',';
+      if (!inline && !cs.length && SQL_LIST.has(clause)) nl(ci); else prev = it;
+      continue;
+    }
+    if (it.t === 'semi') { stmts.push(out.replace(/\s+$/, '') + ';'); out = ''; prev = null; clause = ''; lineInd = ind; continue; }
+    if (it.t === 'lcomment') { if (prev) out += ' '; out += it.v; out += '\n' + lineInd; prev = null; continue; }
+    if (needSpace(prev, it)) out += ' ';
+    out += it.t === 'group' ? renderSqlGroup(it, lineInd) : tokText(it, 'sql');
+    prev = it;
+  }
+  if (out.trim()) stmts.push(out.replace(/\s+$/, ''));
+  return stmts.join('\n\n' + ind);
+}
+function formatSql(src, o) {
+  let toks = tokenize(src, 'sql');
+  if (o.ignoreComments) toks = toks.filter(t => t.t !== 'lcomment' && t.t !== 'bcomment');
+  toks = mergeSqlPhrases(toks);
+  const seq = parse(toks, { lang: 'sql', splitCommas: false, mLet: false });
+  return renderSql(seq, '', false).trim();
+}
+
+/* ---------------- Python (light, safe normalising) ---------------- */
+function formatPython(src, o) {
+  let inTriple = null;
+  const lines = [];
+  for (let raw of src.split('\n')) {
+    const lead0 = raw.match(/^[ \t]*/)[0];
+    let line = (inTriple ? raw : lead0.replace(/\t/g, '    ') + raw.slice(lead0.length)).replace(/\s+$/, '');
+    if (!inTriple) {
+      const lead = line.match(/^ */)[0];
+      let body = line.slice(lead.length), res = '', code = '', j = 0, stop = false;
+      const flushCode = () => {
+        res += code.replace(/[ \t]+/g, ' ').replace(/ ?([,;]) ?/g, '$1 ').replace(/([(\[{]) /g, '$1').replace(/ ([)\]}:,])/g, '$1');
+        code = '';
+      };
+      while (j < body.length && !stop) {
+        const ch = body[j];
+        if (ch === '#') { flushCode(); if (!o.ignoreComments) res += (res && !res.endsWith(' ') ? ' ' : '') + body.slice(j).trim(); stop = true; break; }
+        if (ch === '"' || ch === "'") {
+          flushCode();
+          const tq = body.substr(j, 3);
+          if (tq === ch.repeat(3)) {
+            const e = body.indexOf(tq, j + 3);
+            if (e < 0) { res += body.slice(j); inTriple = tq; stop = true; break; }
+            res += body.slice(j, e + 3); j = e + 3; continue;
+          }
+          let k = j + 1; while (k < body.length && body[k] !== ch) { if (body[k] === '\\') k++; k++; }
+          res += body.slice(j, k + 1); j = k + 1; continue;
+        }
+        code += ch; j++;
+      }
+      flushCode();
+      line = (lead + res).replace(/\s+$/, '');
+    } else {
+      const e = raw.indexOf(inTriple);
+      if (e >= 0) inTriple = null;
+    }
+    lines.push(line);
+  }
+  const out = [];
+  for (const l of lines) {
+    if (l.trim() === '' && (out.length === 0 || out[out.length - 1] === '')) continue;
+    out.push(l.trim() === '' ? '' : l);
+  }
+  return out.join('\n').replace(/\s+$/, '');
+}
+
+/* ---------------- HTML / XML ---------------- */
+function formatHtml(src, o) {
+  const VOID = new Set('area base br col embed hr img input link meta param source track wbr'.split(' '));
+  const RAW = new Set(['script', 'style', 'pre', 'textarea']);
+  const re = /<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<![^>]*>|<\?[\s\S]*?\?>|<\/?[A-Za-z][^>]*>|[^<]+|</g;
+  const normTag = t => t.replace(/\s+/g, ' ').replace(/\s*=\s*/g, '=').replace(/\s+(\/?>)$/, '$1');
+  let m, depth = 0;
+  const lines = [], pad = () => INDENT.repeat(Math.max(0, depth));
+  while ((m = re.exec(src))) {
+    const tk = m[0];
+    if (tk.startsWith('<!--')) { if (!o.ignoreComments) lines.push(pad() + tk.replace(/\s+/g, ' ')); continue; }
+    if (/^<[!?]/.test(tk)) { lines.push(pad() + tk.replace(/\s+/g, ' ')); continue; }
+    if (tk.startsWith('</')) { depth--; lines.push(pad() + normTag(tk)); continue; }
+    if (tk.length > 1 && tk[0] === '<') {
+      const name = ((tk.match(/^<([A-Za-z][\w:.-]*)/) || [])[1] || '').toLowerCase();
+      lines.push(pad() + normTag(tk));
+      if (RAW.has(name) && !tk.endsWith('/>')) {
+        const endRe = new RegExp('</' + name + '\\s*>', 'ig');
+        endRe.lastIndex = re.lastIndex;
+        const e = endRe.exec(src);
+        const raw = src.slice(re.lastIndex, e ? e.index : src.length);
+        raw.split('\n').map(x => x.trim()).filter(Boolean).forEach(x => lines.push(pad() + INDENT + x));
+        if (e) { lines.push(pad() + normTag(e[0])); re.lastIndex = e.index + e[0].length; } else re.lastIndex = src.length;
+        continue;
+      }
+      if (!VOID.has(name) && !tk.endsWith('/>')) depth++;
+      continue;
+    }
+    const t = tk.replace(/\s+/g, ' ').trim();
+    if (t) lines.push(pad() + t);
+  }
+  return lines.join('\n');
+}
+
+function formatText(src) {
+  return src.split('\n').map(l => l.replace(/\s+$/, '')).join('\n').replace(/\s+$/, '');
+}
+
+
+// Remove comment lines from plain text or unknown code.
+// Used when "Ignore comments" is ticked and the type is Plain text / Other.
+// A line is a comment if it starts with  --  or  //  or  #
+// or if it is inside a block comment ( slash-star ... star-slash ) or ( <!-- ... --> ).
+function stripCommentLines(src) {
+  const out = [];
+  let inBlock = null;                       // remembers which block comment we are inside ('*/' or '-->')
+  for (const line of src.split('\n')) {
+    const t = line.trim();
+    if (inBlock) {                          // inside a block comment: skip until it ends
+      if (t.includes(inBlock)) inBlock = null;
+      continue;
+    }
+    if (t.startsWith('/*')) {               // start of /* ... */ block
+      if (!t.includes('*/', 2)) inBlock = '*/';
+      continue;
+    }
+    if (t.startsWith('<!--')) {             // start of <!-- ... --> block
+      if (!t.includes('-->', 4)) inBlock = '-->';
+      continue;
+    }
+    if (/^(--|\/\/|#)/.test(t)) continue;    // single comment line: skip it
+    out.push(line);                         // normal line: keep it
+  }
+  return out.join('\n');
+}
+
+/* ---------------- Auto detect ---------------- */
+function detectLang(s) {
+  const t = (s || '').trim();
+  if (!t) return null;
+  if (/^[\[{]/.test(t)) { try { JSON.parse(t); return 'json'; } catch (e) { /* not json */ } }
+  if (/^<(!doctype|html|\?xml|!--|[a-z][\w:.-]*[\s>\/])/i.test(t) && /<\/?[a-z][^>]*>/i.test(t)) return 'html';
+  if ((/^(\/\/.*\n\s*)*let\b/.test(t) && /\bin\b/.test(t)) || /#"[^"]*"\s*=/.test(t) ||
+      /\b(Table|List|Text|Record|Number|Date|DateTime|Sql|Excel|Csv|Odbc|OData|Web|SharePoint|SapBusinessWarehouse|Value)\.[A-Z]\w*\s*\(/.test(t)) return 'm';
+  if (/^\s*(def|class)\s+\w+.*:\s*$/m.test(t) || /^\s*(import \w|from [\w.]+ import )/m.test(t) ||
+      (/^\s*(if|for|while|elif|else|try|except|with)\b.*:\s*$/m.test(t) && !/\b(SELECT|CALCULATE)\b/i.test(t))) return 'python';
+  if (/^(\s*(--[^\n]*|\/\*[\s\S]*?\*\/)\s*)*(select|with|insert|update|delete|create|alter|merge|declare|exec)\b/i.test(t)) return 'sql';
+  if (/\b(CALCULATE|CALCULATETABLE|SUMX|AVERAGEX|COUNTROWS|FILTER|ALL|ALLEXCEPT|ALLSELECTED|SELECTEDVALUE|DIVIDE|RELATED|SUMMARIZE|SUMMARIZECOLUMNS|ADDCOLUMNS|DISTINCTCOUNT|DATESYTD|TOTALYTD|SAMEPERIODLASTYEAR|DATEADD|SWITCH|IF|SUM|MAX|MIN|KEEPFILTERS|REMOVEFILTERS|TREATAS|USERELATIONSHIP)\s*\(/i.test(t) ||
+      /^\s*(VAR|EVALUATE|DEFINE)\b/im.test(t) || /\bRETURN\b/.test(t) || /'[^'\n]+'\[[^\]]+\]/.test(t) || /\b[A-Za-z_]\w*\[[A-Za-z][^\]"']*\]/.test(t)) return 'dax';
+  return 'text';
+}
+
+/* ---------------- Public: format ---------------- */
+function formatCode(src, lang, o) {
+  src = (src || '').replace(/\r\n?/g, '\n');
+  o = o || {};
+  try {
+    switch (lang) {
+      case 'dax': return { text: formatDaxM(src, 'dax', o) };
+      case 'm': return { text: formatDaxM(src, 'm', o) };
+      case 'sql': return { text: formatSql(src, o) };
+      case 'python': return { text: formatPython(src, o) };
+      case 'html': return { text: formatHtml(src, o) };
+      case 'json': return { text: src.trim() ? JSON.stringify(JSON.parse(src), null, 2) : '' };
+      // Plain text / other: remove comment lines only when "Ignore comments" is ticked
+      default: return { text: formatText(o.ignoreComments ? stripCommentLines(src) : src) };
+    }
+  } catch (e) {
+    return { text: formatText(src), error: 'could not format as ' + lang + ' (' + (e.message || e) + '), compared as plain text' };
+  }
+}
+
+/* ================= Diff (Myers) ================= */
+function myersCore(a, b) {
+  const n = a.length, m = b.length, max = n + m;
+  if (max === 0) return [];
+  if (n === 0) return b.map((_, j) => ['+', -1, j]);
+  if (m === 0) return a.map((_, i) => ['-', i, -1]);
+  const off = max + 1;
+  const V = new Int32Array(2 * max + 3);
+  const trace = [];
+  let found = -1;
+  outer:
+  for (let d = 0; d <= max; d++) {
+    trace.push(V.slice(off - d - 1, off + d + 2));
+    for (let k = -d; k <= d; k += 2) {
+      let x = (k === -d || (k !== d && V[off + k - 1] < V[off + k + 1])) ? V[off + k + 1] : V[off + k - 1] + 1;
+      let y = x - k;
+      while (x < n && y < m && a[x] === b[y]) { x++; y++; }
+      V[off + k] = x;
+      if (x >= n && y >= m) { found = d; break outer; }
+    }
+  }
+  const ops = [];
+  let x = n, y = m;
+  for (let d = found; d > 0; d--) {
+    const vv = trace[d];
+    const get = k => vv[k + d + 1];
+    const k = x - y;
+    const prevK = (k === -d || (k !== d && get(k - 1) < get(k + 1))) ? k + 1 : k - 1;
+    const prevX = get(prevK), prevY = prevX - prevK;
+    while (x > prevX && y > prevY) { ops.push(['=', x - 1, y - 1]); x--; y--; }
+    if (x === prevX) ops.push(['+', -1, y - 1]); else ops.push(['-', x - 1, -1]);
+    x = prevX; y = prevY;
+  }
+  while (x > 0 && y > 0) { ops.push(['=', x - 1, y - 1]); x--; y--; }
+  return ops.reverse();
+}
+function diffArrays(a, b) {
+  let s = 0;
+  while (s < a.length && s < b.length && a[s] === b[s]) s++;
+  let ea = a.length, eb = b.length;
+  while (ea > s && eb > s && a[ea - 1] === b[eb - 1]) { ea--; eb--; }
+  const ops = [];
+  for (let i = 0; i < s; i++) ops.push(['=', i, i]);
+  for (const [op, i, j] of myersCore(a.slice(s, ea), b.slice(s, eb)))
+    ops.push([op, i < 0 ? -1 : i + s, j < 0 ? -1 : j + s]);
+  for (let k = 0; ea + k < a.length; k++) ops.push(['=', ea + k, eb + k]);
+  return ops;
+}
+
+function bigrams(s) { const m = new Map(); for (let i = 0; i < s.length - 1; i++) { const g = s.substr(i, 2); m.set(g, (m.get(g) || 0) + 1); } return m; }
+function similarity(a, b) {
+  a = a.trim().toLowerCase(); b = b.trim().toLowerCase();
+  if (a === b) return 1;
+  if (a.length < 2 || b.length < 2) return (a && b && (a.startsWith(b) || b.startsWith(a))) ? 0.6 : 0;
+  const A = bigrams(a), B = bigrams(b);
+  let inter = 0;
+  for (const [g, c] of A) inter += Math.min(c, B.get(g) || 0);
+  return 2 * inter / (a.length - 1 + b.length - 1);
+}
+/* align a block of removed vs added lines, pairing similar lines as "changed" */
+function alignBlock(D, Ad) {
+  const rows = [];
+  if (!D.length) { Ad.forEach(r => rows.push({ type: 'add', r })); return rows; }
+  if (!Ad.length) { D.forEach(l => rows.push({ type: 'del', l })); return rows; }
+  if (D.length * Ad.length > 2500) {
+    const k = Math.min(D.length, Ad.length);
+    for (let z = 0; z < k; z++) rows.push({ type: 'chg', l: D[z], r: Ad[z] });
+    for (let z = k; z < D.length; z++) rows.push({ type: 'del', l: D[z] });
+    for (let z = k; z < Ad.length; z++) rows.push({ type: 'add', r: Ad[z] });
+    return rows;
+  }
+  const n = D.length, m = Ad.length;
+  const dp = Array.from({ length: n + 1 }, () => new Float64Array(m + 1));
+  const sim = Array.from({ length: n }, (_, i) => Ad.map(r => similarity(D[i].t, r.t)));
+  for (let i = 1; i <= n; i++) for (let j = 1; j <= m; j++) {
+    let best = Math.max(dp[i - 1][j], dp[i][j - 1]);
+    const s = sim[i - 1][j - 1];
+    if (s >= 0.3 || (n === m && n <= 3)) best = Math.max(best, dp[i - 1][j - 1] + Math.max(s, 0.01));
+    dp[i][j] = best;
+  }
+  let i = n, j = m;
+  const rev = [];
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0) {
+      const s = sim[i - 1][j - 1];
+      const ok = s >= 0.3 || (n === m && n <= 3);
+      if (ok && Math.abs(dp[i][j] - (dp[i - 1][j - 1] + Math.max(s, 0.01))) < 1e-9) { rev.push({ type: 'chg', l: D[i - 1], r: Ad[j - 1] }); i--; j--; continue; }
+    }
+    if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) { rev.push({ type: 'add', r: Ad[j - 1] }); j--; }
+    else { rev.push({ type: 'del', l: D[i - 1] }); i--; }
+  }
+  return rev.reverse();
+}
+
+function compareTexts(leftText, rightText, o) {
+  o = o || {};
+  const mk = arr => arr.map((t, i) => ({ t, n: i + 1 })).filter(x => !(o.ignoreBlank && x.t.trim() === ''));
+  const A = mk(leftText.split('\n')), B = mk(rightText.split('\n'));
+  const key = s => { let k = o.ignoreWs ? s.replace(/\s+/g, '') : s.replace(/\s+$/, ''); return o.ignoreCase ? k.toLowerCase() : k; };
+  const ops = diffArrays(A.map(x => key(x.t)), B.map(x => key(x.t)));
+  const rows = [];
+  let dels = [], adds = [];
+  const flush = () => { if (dels.length || adds.length) rows.push(...alignBlock(dels.map(i => A[i]), adds.map(j => B[j]))); dels = []; adds = []; };
+  for (const [op, i, j] of ops) {
+    if (op === '=') { flush(); rows.push({ type: 'eq', l: A[i], r: B[j] }); }
+    else if (op === '-') dels.push(i); else adds.push(j);
+  }
+  flush();
+  return rows;
+}
+
+function escHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+/* word-level highlight inside a changed line */
+function inlineDiff(a, b, o) {
+  o = o || {};
+  const tk = s => s.match(/\s+|[\p{L}\p{N}_]+|[^\s\p{L}\p{N}_]/gu) || [];
+  const ta = tk(a), tb = tk(b);
+  const key = x => /^\s+$/.test(x) ? ' ' : (o.ignoreCase ? x.toLowerCase() : x);
+  const ops = diffArrays(ta.map(key), tb.map(key));
+  let la = '', lb = '';
+  const remRuns = [], addRuns = [];
+  let rr = '', ar = '';
+  const close = () => { if (rr.trim()) remRuns.push(rr.trim()); if (ar.trim()) addRuns.push(ar.trim()); rr = ''; ar = ''; };
+  for (const [op, i, j] of ops) {
+    if (op === '=') {
+      la += escHtml(ta[i]); lb += escHtml(tb[j]);
+      if (/^\s+$/.test(ta[i]) && (rr || ar)) { rr += ' '; ar += ' '; } else close();
+    } else if (op === '-') {
+      const ws = /^\s+$/.test(ta[i]);
+      la += (ws && o.ignoreWs) ? escHtml(ta[i]) : '<span class="xd">' + escHtml(ta[i]) + '</span>';
+      rr += ta[i];
+    } else {
+      const ws = /^\s+$/.test(tb[j]);
+      lb += (ws && o.ignoreWs) ? escHtml(tb[j]) : '<span class="xa">' + escHtml(tb[j]) + '</span>';
+      ar += tb[j];
+    }
+  }
+  close();
+  la = la.replace(/<\/span><span class="xd">/g, '');
+  lb = lb.replace(/<\/span><span class="xa">/g, '');
+  return { la, lb, removed: remRuns, added: addRuns };
+}
+
+if (typeof module !== 'undefined') module.exports = { formatCode, detectLang, compareTexts, inlineDiff, diffArrays, escHtml };
+
+</script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const LANG_NAME = { text: 'Plain text', dax: 'DAX', m: 'Power Query (M)', sql: 'SQL', python: 'Python', html: 'HTML / XML', json: 'JSON', other: 'Other code' };
+const OPT_IDS = ['optAuto', 'optFormat', 'optFormatInput', 'optCase', 'optWs', 'optBlank', 'optComments', 'optOnly'];
+const state = { hunks: [], cur: -1, formatted: { left: '', right: '' }, lang: 'text', expandAll: false };
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('cc_' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('cc_' + k, JSON.stringify(v)); } catch (e) { /* storage not available */ } }
+};
+
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 1600); }
+function getOpts() {
+  return { lang: $('lang').value, auto: $('optAuto').checked, format: $('optFormat').checked, formatInput: $('optFormatInput').checked, ignoreCase: $('optCase').checked,
+    ignoreWs: $('optWs').checked, ignoreBlank: $('optBlank').checked, ignoreComments: $('optComments').checked,
+    onlyDiff: $('optOnly').checked, view: $('view').value };
+}
+function saveAll() {
+  const o = getOpts(); store.set('opts', o);
+  // Text is NOT saved, so the app always opens empty (privacy)
+  store.set('left', ''); store.set('right', '');
+}
+function loadAll() {
+  const o = store.get('opts', null);
+  if (o) {
+    $('lang').value = o.lang || 'auto'; $('view').value = o.view || 'side';
+    const map = { optAuto: 'auto', optFormat: 'format', optFormatInput: 'formatInput', optCase: 'ignoreCase', optWs: 'ignoreWs', optBlank: 'ignoreBlank', optComments: 'ignoreComments', optOnly: 'onlyDiff' };
+    for (const id of OPT_IDS) if (typeof o[map[id]] === 'boolean') $(id).checked = o[map[id]];
+  }
+  // "Ignore comments" always starts unticked when the app opens (comments are compared by default)
+  $('optComments').checked = false;
+  $('left').value = ''; $('right').value = '';
+  try { localStorage.removeItem('cc_left'); localStorage.removeItem('cc_right'); } catch (e) { /* storage not available */ }
+  document.documentElement.dataset.theme = store.get('theme', (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light');
+}
+function lineCount(s) { return s ? s.split('\n').length : 0; }
+function updateCounts() { $('cntL').textContent = lineCount($('left').value) + ' lines'; $('cntR').textContent = lineCount($('right').value) + ' lines'; }
+
+function pickLang(o, left, right) {
+  if (o.lang !== 'auto') return o.lang;
+  const a = detectLang(left), b = detectLang(right);
+  if (a && a !== 'text') return a;
+  if (b && b !== 'text') return b;
+  return 'text';
+}
+function prepare() {
+  const o = getOpts();
+  const left = $('left').value, right = $('right').value;
+  const lang = pickLang(o, left, right);
+  const warns = [];
+  let L, R;
+  if (o.format && lang !== 'other') {
+    const fl = formatCode(left, lang, o), fr = formatCode(right, lang, o);
+    L = fl.text; R = fr.text;
+    if (fl.error) warns.push('Left side: ' + fl.error + '.');
+    if (fr.error) warns.push('Right side: ' + fr.error + '.');
+  } else {
+    L = formatCode(left, 'text', o).text; R = formatCode(right, 'text', o).text;
+  }
+  return { o, lang, L, R, warns };
+}
+
+// Format the text inside the input boxes.
+// This runs ONLY when "Format my input" is ticked.
+// Comments are always kept here - "Ignore comments" never changes your input.
+function formatInputs() {
+  if (!$('optFormatInput').checked) return;              // box not ticked: never touch the input
+  const left = $('left').value, right = $('right').value;
+  const lang = pickLang(getOpts(), left, right);         // same type as the compare uses
+  if (lang === 'other') return;                          // "Other code": no formatting
+  for (const side of ['left', 'right']) {
+    const src = $(side).value;
+    if (!src.trim()) continue;                           // empty box: nothing to do
+    const r = formatCode(src, lang, { ignoreComments: false });  // keep comments
+    if (!r.error && r.text !== src) $(side).value = r.text;      // only replace if formatting worked
+  }
+}
+
+function runCompare() {
+  saveAll(); updateCounts();
+  const { o, lang, L, R, warns } = prepare();
+  state.formatted = { left: L, right: R }; state.lang = lang;
+  $('detected').textContent = (o.lang === 'auto' ? 'Detected: ' : '') + LANG_NAME[lang] + (o.format && lang !== 'other' ? ' · formatted' : '');
+  $('warns').innerHTML = warns.map(w => '<div class="warn">⚠ ' + escHtml(w) + '</div>').join('');
+  if (!$('left').value.trim() && !$('right').value.trim()) {
+    $('banner').className = 'banner'; $('banner').innerHTML = '<span class="help">Paste text or code in both boxes. The result shows here.</span>';
+    $('changes').hidden = true; $('diffwrap').innerHTML = '<div class="empty-msg">Nothing to compare yet.</div>'; return;
+  }
+  const rows = compareTexts(L, R, o);
+  render(rows, o);
+}
+
+function render(rows, o) {
+  let chg = 0, add = 0, del = 0, eq = 0;
+  const hunks = [];
+  rows.forEach((r, i) => {
+    if (r.type === 'eq') { eq++; return; }
+    if (r.type === 'chg') chg++; else if (r.type === 'add') add++; else del++;
+    if (i === 0 || rows[i - 1].type === 'eq') hunks.push({ start: i, end: i }); else hunks[hunks.length - 1].end = i;
+  });
+  state.hunks = hunks; state.cur = -1;
+  const nL = rows.filter(r => r.l).length, nR = rows.filter(r => r.r).length;
+  const simPct = (nL + nR) ? Math.round(200 * eq / (nL + nR)) : 100;
+
+  // inline word diffs for changed rows
+  const inl = rows.map(r => r.type === 'chg' ? inlineDiff(r.l.t, r.r.t, o) : null);
+
+  // banner
+  const ignored = [o.ignoreCase && 'case', o.ignoreWs && 'spaces', o.ignoreBlank && 'blank lines', o.ignoreComments && 'comments'].filter(Boolean);
+  const note = (o.format && state.lang !== 'other' ? 'Both sides formatted as ' + LANG_NAME[state.lang] + '. ' : '') + (ignored.length ? 'Ignoring ' + ignored.join(', ') + '.' : '');
+  const b = $('banner');
+  if (!hunks.length) {
+    b.className = 'banner same';
+    b.innerHTML = '<span class="big">✅ Same: no differences found</span><span class="help" style="color:inherit">' + escHtml(note) + '</span>';
+  } else {
+    b.className = 'banner';
+    b.innerHTML =
+      '<span class="big">❗ ' + hunks.length + ' difference' + (hunks.length > 1 ? 's' : '') + ' found</span>' +
+      '<span class="stat"><i class="dot c"></i>' + chg + ' changed line' + (chg === 1 ? '' : 's') + '</span>' +
+      '<span class="stat"><i class="dot a"></i>' + add + ' added (only in right)</span>' +
+      '<span class="stat"><i class="dot d"></i>' + del + ' removed (only in left)</span>' +
+      '<span class="stat">≈ ' + simPct + '% same</span>' +
+      '<span class="help">' + escHtml(note) + '</span>' +
+      '<span class="navbar"><button id="btnPrev" title="Alt + ↑">▲ Prev</button><span id="navPos" class="help">– / ' + hunks.length + '</span><button id="btnNext" title="Alt + ↓">▼ Next</button></span>';
+    $('btnPrev').onclick = () => go(state.cur - 1);
+    $('btnNext').onclick = () => go(state.cur + 1);
+  }
+
+  // list of changes
+  const list = [];
+  hunks.slice(0, 300).forEach((h, k) => {
+    const part = rows.slice(h.start, h.end + 1);
+    const ls = part.filter(r => r.l).map(r => r.l.n), rs = part.filter(r => r.r).map(r => r.r.n);
+    const rng = a => !a.length ? '' : a[0] === a[a.length - 1] ? 'line ' + a[0] : 'lines ' + a[0] + '–' + a[a.length - 1];
+    let txt;
+    const c = part.filter(r => r.type === 'chg').length, a = part.filter(r => r.type === 'add').length, d = part.filter(r => r.type === 'del').length;
+    if (part.length === 1 && part[0].type === 'chg') {
+      const x = inl[h.start];
+      const cut = s => s.length > 70 ? s.slice(0, 70) + '…' : s;
+      const was = x.removed.join(' … '), now = x.added.join(' … ');
+      txt = 'Left ' + rng(ls) + ' / Right ' + rng(rs) + ': ' +
+        (was ? 'was <span class="chg-was">' + escHtml(cut(was)) + '</span> ' : '') +
+        (now ? (was ? '→ now ' : 'added ') + '<span class="chg-now">' + escHtml(cut(now)) + '</span>' : (was ? '(removed)' : 'spacing / case only'));
+    } else {
+      const bits = [c && c + ' changed', a && a + ' added', d && d + ' removed'].filter(Boolean).join(', ');
+      txt = (ls.length ? 'Left ' + rng(ls) : '') + (ls.length && rs.length ? ' / ' : '') + (rs.length ? 'Right ' + rng(rs) : '') + ': ' + bits;
+    }
+    list.push('<li data-h="' + k + '">' + txt + '</li>');
+  });
+  $('changes').hidden = !hunks.length;
+  $('changesTitle').textContent = 'List of changes (' + hunks.length + ')' + (hunks.length > 300 ? ' (first 300 shown)' : '');
+  $('changeList').innerHTML = list.join('');
+
+  // which rows to show
+  const keep = new Array(rows.length).fill(!o.onlyDiff || state.expandAll);
+  if (o.onlyDiff && !state.expandAll) rows.forEach((r, i) => { if (r.type !== 'eq') for (let z = Math.max(0, i - 3); z <= Math.min(rows.length - 1, i + 3); z++) keep[z] = true; });
+
+  const hunkStart = new Map(hunks.map((h, k) => [h.start, k]));
+  const out = [];
+  const side = o.view === 'side';
+  const cols = side ? 4 : 4;
+  if (side) out.push('<table class="diff"><colgroup><col class="ln"><col><col class="ln"><col></colgroup><thead><tr><th colspan="2">Left (old)</th><th colspan="2" class="mid">Right (new)</th></tr></thead><tbody>');
+  else out.push('<table class="diff"><colgroup><col class="ln"><col class="ln"><col class="sg"><col></colgroup><thead><tr><th>Left</th><th>Right</th><th></th><th>Text</th></tr></thead><tbody>');
+  let hidden = 0;
+  const flushGap = () => { if (hidden) { out.push('<tr class="gap"><td colspan="' + cols + '" title="Click to show all lines">··· ' + hidden + ' same line' + (hidden > 1 ? 's' : '') + ' hidden (click to show) ···</td></tr>'); hidden = 0; } };
+  const e = s => escHtml(s);
+  for (let i = 0; i < rows.length; i++) {
+    if (!keep[i]) { hidden++; continue; }
+    flushGap();
+    const r = rows[i];
+    const id = hunkStart.has(i) ? ' id="h' + hunkStart.get(i) + '"' : '';
+    if (side) {
+      if (r.type === 'eq') out.push('<tr' + id + '><td class="ln">' + r.l.n + '</td><td class="c">' + e(r.l.t) + '</td><td class="ln mid">' + r.r.n + '</td><td class="c">' + e(r.r.t) + '</td></tr>');
+      else if (r.type === 'chg') out.push('<tr' + id + '><td class="ln del">' + r.l.n + '</td><td class="c del">' + inl[i].la + '</td><td class="ln add mid">' + r.r.n + '</td><td class="c add">' + inl[i].lb + '</td></tr>');
+      else if (r.type === 'del') out.push('<tr' + id + '><td class="ln del">' + r.l.n + '</td><td class="c del">' + e(r.l.t) + '</td><td class="ln empty mid"></td><td class="c empty"></td></tr>');
+      else out.push('<tr' + id + '><td class="ln empty"></td><td class="c empty"></td><td class="ln add mid">' + r.r.n + '</td><td class="c add">' + e(r.r.t) + '</td></tr>');
+    } else {
+      if (r.type === 'eq') out.push('<tr' + id + '><td class="ln">' + r.l.n + '</td><td class="ln">' + r.r.n + '</td><td class="sg"></td><td class="c">' + e(r.l.t) + '</td></tr>');
+      else {
+        const L = r.type === 'chg' ? inl[i].la : r.l ? e(r.l.t) : null;
+        const R = r.type === 'chg' ? inl[i].lb : r.r ? e(r.r.t) : null;
+        if (L !== null) out.push('<tr' + id + '><td class="ln del">' + r.l.n + '</td><td class="ln del"></td><td class="sg del">−</td><td class="c del">' + L + '</td></tr>');
+        if (R !== null) out.push('<tr' + (L === null ? id : '') + '><td class="ln add"></td><td class="ln add">' + r.r.n + '</td><td class="sg add">+</td><td class="c add">' + R + '</td></tr>');
+      }
+    }
+  }
+  flushGap();
+  out.push('</tbody></table>');
+  $('diffwrap').innerHTML = out.join('');
+}
+
+function go(k) {
+  if (!state.hunks.length) return;
+  k = (k + state.hunks.length) % state.hunks.length;
+  let el = document.getElementById('h' + k);
+  if (!el) return;
+  state.cur = k;
+  const pos = $('navPos'); if (pos) pos.textContent = (k + 1) + ' / ' + state.hunks.length;
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const h = state.hunks[k];
+  let row = el;
+  for (let z = h.start; z <= h.end && row; z++) { row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); row = row.nextElementSibling; }
+}
+
+let timer = null;
+function schedule() { updateCounts(); if (!$('optAuto').checked) { saveAll(); return; } clearTimeout(timer); timer = setTimeout(runCompare, 450); }
+
+async function copyText(s) {
+  try { await navigator.clipboard.writeText(s); return true; } catch (e) {
+    const ta = document.createElement('textarea'); ta.value = s; document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch (e2) { /* ignore */ } ta.remove(); return ok;
+  }
+}
+function readFileInto(file, side) {
+  const fr = new FileReader();
+  fr.onload = () => { $(side).value = String(fr.result).replace(/^﻿/, ''); toast('Loaded ' + file.name); formatInputs(); runCompare(); };
+  fr.readAsText(file);
+}
+
+const EXAMPLES = {
+  dax: [
+`Total Sales LY = calculate(sum(Sales[Amount]),sameperiodlastyear('Date'[Date]),Sales[Region]="West")`,
+`Total Sales LY =
+    CALCULATE(
+        SUM(Sales[Amount]),
+        SAMEPERIODLASTYEAR('Date'[Date]),
+        Sales[Region] = "East",
+        Sales[Channel] = "Online"
+    )`],
+  m: [
+`let Source = Sql.Database("srv01", "SalesDB"), #"Filtered Rows" = Table.SelectRows(Source, each [Amount] > 100), #"Changed Type" = Table.TransformColumnTypes(#"Filtered Rows",{{"Amount", type number},{"Date", type date}}) in #"Changed Type"`,
+`let
+    Source = Sql.Database("srv02", "SalesDB"),
+    #"Filtered Rows" = Table.SelectRows(Source, each [Amount] > 500),
+    #"Changed Type" = Table.TransformColumnTypes(
+        #"Filtered Rows",
+        {{"Amount", type number}, {"Date", type date}}
+    ),
+    #"Removed Columns" = Table.RemoveColumns(#"Changed Type", {"Notes"})
+in
+    #"Removed Columns"`],
+  sql: [
+`select c.customer_id, c.name, sum(o.amount) as total from customers c inner join orders o on o.customer_id = c.customer_id where o.order_date >= '2024-01-01' group by c.customer_id, c.name order by total desc`,
+`SELECT
+    c.customer_id,
+    c.name,
+    c.city,
+    SUM(o.amount) AS total
+FROM customers c
+LEFT JOIN orders o ON o.customer_id = c.customer_id
+WHERE o.order_date >= '2025-01-01'
+GROUP BY c.customer_id, c.name, c.city
+ORDER BY total DESC`],
+  text: [
+`Hi team,
+The report will be refreshed every Monday at 9 AM.
+Please send your inputs by Friday.
+Thanks,
+Rahul`,
+`Hi team,
+The report will be refreshed every Monday at 10 AM.
+Please send your inputs by Thursday.
+
+Thanks and regards,
+Rahul`]
+};
+
+function init() {
+  loadAll(); updateCounts();
+  $('btnCompare').onclick = () => { formatInputs(); runCompare(); };
+  $('btnSwap').onclick = () => { const t = $('left').value; $('left').value = $('right').value; $('right').value = t; runCompare(); };
+  $('btnClear').onclick = () => { $('left').value = ''; $('right').value = ''; runCompare(); $('left').focus(); };
+  $('btnTheme').onclick = () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; store.set('theme', t); };
+  $('btnInputs').onclick = () => { const s = $('inputs').classList.toggle('hidden'); $('btnInputs').textContent = s ? 'Show inputs' : 'Hide inputs'; };
+  $('example').onchange = () => {
+    const ex = EXAMPLES[$('example').value]; if (!ex) return;
+    $('left').value = ex[0]; $('right').value = ex[1]; $('lang').value = 'auto'; $('example').value = ''; formatInputs(); runCompare();
+  };
+  for (const id of ['lang', 'view', ...OPT_IDS]) $(id).addEventListener('change', () => {
+    state.expandAll = false;
+    if (id === 'optFormatInput' || id === 'lang') formatInputs();   // format input only for these two
+    runCompare();
+  });
+  for (const side of ['left', 'right']) {
+    const ta = $(side);
+    ta.addEventListener('input', schedule);                              // typing: compare only, input not changed
+    ta.addEventListener('paste', () => setTimeout(() => { formatInputs(); runCompare(); }, 0));  // paste: format input if ticked
+    ta.addEventListener('keydown', ev => {
+      if (ev.key === 'Tab' && !ev.ctrlKey && !ev.altKey) {
+        ev.preventDefault();
+        const s = ta.selectionStart, en = ta.selectionEnd;
+        ta.setRangeText('    ', s, en, 'end'); schedule();
+      }
+    });
+    ta.addEventListener('dragover', ev => { ev.preventDefault(); ta.classList.add('drag'); });
+    ta.addEventListener('dragleave', () => ta.classList.remove('drag'));
+    ta.addEventListener('drop', ev => {
+      ta.classList.remove('drag');
+      const f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+      if (f) { ev.preventDefault(); readFileInto(f, side); }
+    });
+  }
+  let openSide = 'left';
+  document.querySelectorAll('[data-open]').forEach(btn => btn.onclick = () => { openSide = btn.dataset.open; $('fileInput').value = ''; $('fileInput').click(); });
+  $('fileInput').onchange = () => { const f = $('fileInput').files[0]; if (f) readFileInto(f, openSide); };
+  document.querySelectorAll('[data-copy]').forEach(btn => btn.onclick = async () => {
+    const side = btn.dataset.copy;
+    if (!state.formatted[side] && $(side).value) runCompare();
+    toast(await copyText(state.formatted[side] || '') ? 'Formatted ' + side + ' copied' : 'Copy failed');
+  });
+  $('changeList').addEventListener('click', ev => { const li = ev.target.closest('li[data-h]'); if (li) go(+li.dataset.h); });
+  $('diffwrap').addEventListener('click', ev => { if (ev.target.closest('tr.gap')) { state.expandAll = true; runCompare(); } });
+  document.addEventListener('keydown', ev => {
+    if ((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter') { ev.preventDefault(); formatInputs(); runCompare(); }
+    if (ev.altKey && ev.key === 'ArrowDown') { ev.preventDefault(); go(state.cur + 1); }
+    if (ev.altKey && ev.key === 'ArrowUp') { ev.preventDefault(); go(state.cur - 1); }
+  });
+  runCompare();
+}
+init();
+</script>
+</body>
+</html>
